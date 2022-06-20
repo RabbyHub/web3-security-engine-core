@@ -21,10 +21,10 @@ class UtilFuncMixin(object):
         return False if obj else True
 
     def is_not_null(self, obj):
-        return not self.isNull(obj)
+        return not self.is_null(obj)
 
     def is_in_list(self, obj, destList):
         return True if obj in destList else False
 
     def is_not_in_list(self, obj, destList):
-        return not self.isInList(obj, destList)
+        return not self.is_in_list(obj, destList)

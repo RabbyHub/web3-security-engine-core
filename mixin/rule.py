@@ -20,7 +20,8 @@ class DefaultRuleLoadMixin(object):
                 obj, err = callback(os.path.join(dir, filename))
                 if err:
                     print(err)
-                objs.append((filename, obj))
+                else:
+                    objs.append((filename, obj))
         return objs
     
     def load_rules(self):

@@ -65,4 +65,11 @@ class CustomFuncMixin(object):
     def get_addr_to_addr_transfer_count(self, from_, to, chain):
         return 0
 
+    def get_ens_name(self, id):
+        return ''
+
+    def has_risk_ens_character(self, name):
+        return False
+
+
 

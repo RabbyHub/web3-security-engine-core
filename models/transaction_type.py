@@ -32,7 +32,7 @@ class NFTTransfer(object):
 
 @dataclasses.dataclass()
 class NFTApprove(object):
-    onwer: str
+    owner: str
     spender: str
     spender_contract: typing.Optional[Contract]
     nft: NFT

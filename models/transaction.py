@@ -2,7 +2,6 @@ import dataclasses
 import typing
 
 # transaction
-
 @dataclasses.dataclass()
 class Tx(object):
     
