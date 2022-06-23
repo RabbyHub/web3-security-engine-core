@@ -7,7 +7,7 @@ from .contract import Contract
 
 @dataclasses.dataclass()
 class TokenTransfer(object):
-    from_addr: str
+    from_: str
     to: str
     token: Token
     amount: int
@@ -24,7 +24,7 @@ class TokenApprove(object):
 
 @dataclasses.dataclass()
 class NFTTransfer(object):
-    _from: str
+    from_: str
     to: str
     nft: NFT
     amount: int
@@ -41,7 +41,7 @@ class NFTApprove(object):
 
 @dataclasses.dataclass()
 class NFTCollectionApprove(object):
-    onwer: str
+    owner: str
     spender: str
     spender_contract: typing.Optional[Contract]
     nft_collection: NFTCollection

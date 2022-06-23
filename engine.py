@@ -1,91 +1,79 @@
+import logging
+import time
+from models.rule import RuleHit, ExecuteLog
+from handlers import BaseHandler, HandlerType
 
-from logger import get_logger
-from context import Context
-from models.rule import RuleResult
-from mixin.rule import DefaultRuleLoadMixin
-
-logger = get_logger('engine')
+logger = logging.getLogger('engine')
 
 
-class BaseEngine(object):
+class SecurityEngine(object):
+
+    def __init__(self, rule_load_handler_list=[], log_handler_list=[]):
+        self.handler_map = {
+            HandlerType.RULE_LOAD: rule_load_handler_list,
+            HandlerType.LOG: log_handler_list,
+        }
+        self.rule_list = []
+        self.data_source_list = []
     
-    def __init__(self):
-        self.rules = []
-        self.source = None
-
-    def eval_rule(self, rule):
-        raise NotImplementedError
+    def load(self):
+        for handler_type, handler_list in self.handler_map:
+            logger.info('Load handler type=[%s], handler_list=[%s]', handler_type, handler_list)
+            if handler_type == HandlerType.RULE_LOAD:
+                for handler in handler_list:
+                    rule_list, data_source_list = handler.load()
+                    self.rule_list.extend(rule_list)
+                    self.data_source_list.extend(data_source_list)
+            elif handler_type == HandlerType.LOG:
+                pass
     
-    def initalize(self):
-        raise NotImplementedError
-        
-    def check(self, activity):
-        raise NotImplementedError
+    def add_handler(self, handler: BaseHandler):
+        if handler.handler_type not in self.handler_map:
+            logger.error('Handler type: %s invalid', handler.handler_type)
+        self.handler_map[handler.handler_type].append(handler)
 
-
-class SecurityEngine(BaseEngine, DefaultRuleLoadMixin):
-
-    def __init__(self):
-        super().__init__()
-
-    def initalize(self):
-        self.load_rules()
-        self.load_sources()
-
-    def eval_rule(self, context, rule):
-        try:
-            return eval(rule.logic, context)
-        except Exception as e:
-            logger.error('Eval rule=[%s] error=[%s]', rule.logic, e)
-    
-    def init_context(self, activity):
-        context = Context(activity, self.source)
+    def pre_hook(self, context):
+        # hook data source
+        if self.data_source_list:
+            # todo data source is dict, need unique namespace 
+            context.add_property('data_source', self.data_source_list)
         return context
 
-    def check(self, activity):
-        context = self.init_context(activity)
-        result = []
+    def trace_log(self, context, rule, err, hit):
+        log_handler_list = self.handler_map[HandlerType.LOG]
+        log = ExecuteLog(origin=context.origin, text=context.text, tx=context.tx, 
+                   rule=rule, err=err, hit=hit, time_at=time.time())
+        for handler in log_handler_list:
+            handler.add_trace_log(log)
+        
+    def post_hook(self):
+        log_handler_list = self.handler_map[HandlerType.LOG]
+        for handler in log_handler_list:
+            handler.output()
+
+    def run(self, context):
+        context = self.pre_hook(context)
+        hit_list = []
         for rule in self.rules:
-            res = self.eval_rule(context.local_ctx, rule)
-            if not res:
+            hit, err = self.execute(context, rule)
+            self.trace_log(context, rule, err, hit)
+            if not hit:
                 continue
-            result.append(
-                RuleResult(description=rule.description, 
-                level=rule.level)
-                )
-        return result
+            hit_list.append(RuleHit(description=rule.description,  level=rule.level))
+        self.post_hook()
+        return hit_list
 
-
-def main():
+    def execute(self, context, rule):
+        try:
+            if rule.conditions:
+                for c in rule.conditions:
+                    rule.logic.replace(c.condition, '(%s)' % c.logic)
+            return eval(rule.logic, context), None
+        except Exception as e:
+            logger.error('Eval rule=[%s] error=[%s]', rule.logic, e)
+            return None, str(e)
     
-    activities = [
-        {
-            'transaction': {
-                "chainId": 42161, 
-                "data": "0x", 
-                "from": "0x34799a3314758b976527f8489e522e835ed8d0d2", 
-                "gas": "0x5208", 
-                "gasPrice": "0x1dcd65000", 
-                "nonce": "0x0", 
-                "to": "0x81Fbf7d00316610Bae86Ae52F40908fF571F670A", 
-                "value": "0x5efe7ec8b12d9c8"
-            },
-            'text': None,
-            'origin': "https://quickswap.exchange"
-        }
-    ]
-
-    engine = SecurityEngine()
-    engine.initalize()
-    print('initalized successfuly.')
-
-    for activity in activities:
-        result = engine.check(activity)
-        for r in result:
-            print('description: %s\nlevel: %s' % (r.description, r.level))
 
 
-if __name__ == '__main__':
-    main()
 
     

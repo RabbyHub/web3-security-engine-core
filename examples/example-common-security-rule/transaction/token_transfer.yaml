@@ -1,0 +1,48 @@
+- 
+  description: The recipient address is a token contract address.
+  level: Forbidden
+  logic: is_not_null(tokenTransfer) and is_not_null(get_token(token_transfer.to))
+- 
+  description: The recipient address does NOT exist on the current chain.
+  level: Danger
+  # logic: isNotNull(tokenTransfer) and addrNotExistOnChain(tokenTransfer.to, tx.chain)
+  logic: is_not_null(tokenTransfer) and is_not_in_list(chain, get_address(token_transfer.to).used_chain_list)
+  #logic: isNotNull(tokenTransfer) and getAddress(tokenTransfer.to).isExist
+-
+  description: You've NEVER transferred to this address before. 
+  level: Warning
+  # logic: isNotNull(tokenTransfer) and isEqualToZero(tokenTransfer.historyTransferCount)
+  logic: is_not_null(token_transfer) and get_addr_to_addr_transfer_count(token_transfer.from_, tokenTransfer.to, chain) == 0
+-
+  description: The recipient address is a contract address but NOT multi-signed. 
+  level: Forbidden
+  conditions:
+    - condition: A
+      logic: is_not_null(tokenTransfer)
+      description: The transaction type is token transfer.
+    - condition: B
+      logic: is_not_null(get_contract(token_transfer.to))
+      description: The recipient address is contract address.
+    - condition: C
+      logic: not get_contract(token_transfer.to).is_multisig
+      # isInlist('gnosis', getContract(tokenTransfer.to).multisigList)
+      description: The recipient address is not multisig address.
+  logic: A and B and C
+-
+  description: The recipient ENS address has zero-width joiner. 
+  level: Warning
+  # logic: isNotNull(tokenTransfer) and getAddress(tokenTransfer.to).hasRiskEnsCharacter
+  logic: is_not_null(tokenTransfer) and has_risk_ens_character(get_ens_name(token_transfer.to))
+-
+  description: The recipient address is a multisig address that exists on ANOTHER chain.
+  level: Forbidden
+  logic: any([i.is_multisig for i in get_address(token_transfer.to).contract_list])
+
+#  any([i.isMultiSig for i in getAddress(tokenTransfer.to).contactList])
+  
+#  any(map(getAddress(tokenTransfer.to).contactList, lambda contract: contract.isMultiSig))
+  
+  # anyTrue(getAddress(tokenTransfer.to).contactList, 'isMultiSig')
+  
+  # (chain, getAddress(tokenTransfer.to).contactList[0].isMultiSig, )
+  

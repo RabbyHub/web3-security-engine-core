@@ -5,8 +5,8 @@ from .contract import Contract
 @dataclasses.dataclass()
 class Address(object):
     id: str
-    contractList: list[Contract]
-    usedChainList: list  # 是否放到 built func
+    contract_list: list[Contract]
+    used_chain_list: list  # 是否放到 built func
 
 
 
