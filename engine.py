@@ -17,15 +17,11 @@ class SecurityEngine(object):
         self.data_source_list = []
     
     def load(self):
-        for handler_type, handler_list in self.handler_map:
-            logger.info('Load handler type=[%s], handler_list=[%s]', handler_type, handler_list)
-            if handler_type == HandlerType.RULE_LOAD:
-                for handler in handler_list:
-                    rule_list, data_source_list = handler.load()
-                    self.rule_list.extend(rule_list)
-                    self.data_source_list.extend(data_source_list)
-            elif handler_type == HandlerType.LOG:
-                pass
+        for handler in self.handler_map[HandlerType.RULE_LOAD]:
+            logger.info('Load handler type=[%s], handler_list=[%s]', HandlerType.RULE_LOAD, handler)
+            rule_list, data_source_list = handler.load()
+            self.rule_list.extend(rule_list)
+            self.data_source_list.extend(data_source_list)
     
     def add_handler(self, handler: BaseHandler):
         if handler.handler_type not in self.handler_map:
