@@ -1,49 +1,47 @@
+from urllib.parse import urlparse
 from functools import cached_property
 from models.transaction import Tx
 
 
-class BaseContext(dict):
+class Context(object):
 
-    def __init__(self):
-        pass
-
-    def add_property(self, key, value):
-        self[key] = value
-        
-    def add_property_dict(self, **kwargs):
-        self.update(**kwargs)
-
-
-class Context(BaseContext):
-
-    def __init__(self, activity, data_source=None):
-        self.data_source = data_source
-        self.activity = activity
+    def __init__(self, action):
+        self.action = action
         super(Context, self).__init__()
 
     @cached_property
+    def action(self):
+        return self.action
+
+    @cached_property
     def origin(self):
-        origin = self.activity.get('origin')
+        origin = self.action.get('origin')
         return origin
 
     @cached_property
+    def domain(self):
+        if not self.origin:
+            return
+        return urlparse(self.origin).netloc
+
+    @cached_property
     def text(self):
-        text = self.activity.get('text')
+        text = self.action.get('text')
         return text
         
     @cached_property
     def tx(self):
-        tx = self.activity.get('transaction')
+        tx = self.action.get('transaction')
         if not tx:
             return
         # todo validate
         return Tx(**dict(
-            chainId=tx['chainId'],
+            chain_id=tx['chainId'],
             data=tx.get('data', '0x'),
             from_=tx.get('from'),
             to=tx.get('to'),
             gas=int(tx.get('gas', '0x'), 16),
-            gasPrice=tx.get('gasPrice', 0),
+            gas_price=tx.get('gasPrice', 0),
             nonce=int(tx.get('nonce'), 16),
             value=int(tx.get('value'), 16)
         ))

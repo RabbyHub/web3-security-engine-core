@@ -1,75 +1,68 @@
 import logging
+from readline import insert_text
 import time
-from models.rule import RuleHit, ExecuteLog
+import inspect
+from models.rule import Response
+from managers.rule import RuleManager
+from managers.log import LogManager
+from managers.context import ContextManager
 from handlers import BaseHandler, HandlerType
 
-logger = logging.getLogger('engine')
+
+log_manager = LogManager()
 
 
-class SecurityEngine(object):
+class SecurityEngineCore(object):
 
-    def __init__(self, rule_load_handler_list=[], log_handler_list=[]):
-        self.handler_map = {
-            HandlerType.RULE_LOAD: rule_load_handler_list,
-            HandlerType.LOG: log_handler_list,
-        }
-        self.rule_list = []
-        self.data_source_list = []
-    
-    def load(self):
-        for handler in self.handler_map[HandlerType.RULE_LOAD]:
-            logger.info('Load handler type=[%s], handler_list=[%s]', HandlerType.RULE_LOAD, handler)
-            rule_list, data_source_list = handler.load()
-            self.rule_list.extend(rule_list)
-            self.data_source_list.extend(data_source_list)
-    
-    def add_handler(self, handler: BaseHandler):
-        if handler.handler_type not in self.handler_map:
-            logger.error('Handler type: %s invalid', handler.handler_type)
-        self.handler_map[handler.handler_type].append(handler)
-
-    def pre_hook(self, context):
-        # hook data source
-        if self.data_source_list:
-            # todo data source is dict, need unique namespace 
-            context.add_property('data_source', self.data_source_list)
-        return context
-
-    def trace_log(self, context, rule, err, hit):
-        log_handler_list = self.handler_map[HandlerType.LOG]
-        log = ExecuteLog(origin=context.origin, text=context.text, tx=context.tx, 
-                   rule=rule, err=err, hit=hit, time_at=time.time())
-        for handler in log_handler_list:
-            handler.add_trace_log(log)
+    def __init__(self, rule_load_handler_list=[]):
+        self.rule_manager = RuleManager(load_handlers=rule_load_handler_list)
         
-    def post_hook(self):
-        log_handler_list = self.handler_map[HandlerType.LOG]
-        for handler in log_handler_list:
-            handler.output()
+    def load(self, refresh=False):
+        self.rule_manager.load(refresh=refresh)
+    
+    def add_handler(self, handler):
+        if handler.handler_type == HandlerType.RULE_LOAD:
+            self.rule_manager.add_load_handler(handler)
+        elif handler.handler_type == HandlerType.LOG:
+            log_manager.add_handler(handler)
+        else:
+            logging.error('Engine handler type: %s invalid', handler.handler_type)
 
     def run(self, context):
-        context = self.pre_hook(context)
-        hit_list = []
-        for rule in self.rules:
-            hit, err = self.execute(context, rule)
-            self.trace_log(context, rule, err, hit)
-            if not hit:
-                continue
-            hit_list.append(RuleHit(description=rule.description,  level=rule.level))
-        self.post_hook()
-        return hit_list
+        self.context_manager = ContextManager(context=context)
+        app_list = self.rule_manager.filter(context.origin)
+        hit_rules = []
+        for app in app_list:
+            context = self.context_manager.clone(**dict(data_source=app.data_source))
+            rules = self.run_app(context, app)
+            hit_rules.extend(rules)
+        if hit_rules:
+            res = Response(Hit=True, rules=hit_rules)
+        else:
+            res = Response(Hit=False)
+        return res
+
+    @log_manager
+    def run_app(self, context, app):
+        hit_rules = []
+        for rule in app.rules:
+            try:
+                hit = self.execute(context, rule)
+                if not hit:
+                    continue
+                hit_rules.append(rule)
+            except Exception as e:
+                logging.error('Eval rule=[%s] error=[%s]', rule.logic, e)
+        self.context_manager.add_property(context, 'hit_rules', hit_rules)
+        self.context_manager.add_property(context, 'app', app)
+        return hit_rules
 
     def execute(self, context, rule):
-        try:
-            if rule.conditions:
-                for c in rule.conditions:
-                    rule.logic.replace(c.condition, '(%s)' % c.logic)
-            return eval(rule.logic, context), None
-        except Exception as e:
-            logger.error('Eval rule=[%s] error=[%s]', rule.logic, e)
-            return None, str(e)
-    
-
+        context_dict = self.context_manager.to_dict(context)
+        if rule.conditions:
+            for condition in rule.conditions:
+                rule.logic = rule.logic.replace(condition['condition'], '(%s)' % condition['logic'])
+        return eval(rule.logic, context_dict)
 
 
     

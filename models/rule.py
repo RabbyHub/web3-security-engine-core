@@ -1,5 +1,5 @@
 import dataclasses
-import typing
+from typing import Optional
 from .transaction import Tx
 
 
@@ -14,15 +14,24 @@ class Condition(object):
 class Rule(object):
     description: str
     level: str
-    conditions: typing.Optional(list[Condition])
     logic: str
-    version: str  # github commit or tag
+    conditions: list[Condition] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass()
-class RuleHit(object):
-    description: str
-    level: str
+class App(object):
+    name: str
+    rules: list[Rule]
+    data_source: object
+    is_active: bool
+    version: str
+    domain: str = 'common'
+    
+
+@dataclasses.dataclass()
+class Response(object):
+    Hit: bool
+    rules: list[Rule] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass()
@@ -30,9 +39,8 @@ class ExecuteLog(object):
     origin: str
     text: str
     tx: Tx
-    rule: Rule
-    err: str
-    hit: bool
+    app: App
+    hit_rules: list[Rule]
     time_at: int
     
 

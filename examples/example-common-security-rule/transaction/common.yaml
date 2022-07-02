@@ -1,8 +1,0 @@
-- 
-  description: The domain is in community domain blocklist.
-  level: Forbidden
-  logic: is_in_list(domain, data_source.community_domain_blocklist)
-- 
-  description: The address the transaction is directed to is in community contract address blocklist.
-  level: Forbidden
-  logic: is_in_list(tx.to, data_source.community_contract_address_blockList)

@@ -1,8 +1,9 @@
 import logging
+import time
 from handlers import HandlerType, BaseHandler
 from models.rule import ExecuteLog
+from runtime.context import Context
 
-logger = logging.getLogger('log_handler')
 
 class BaseLogHandler(BaseHandler):
 
@@ -10,30 +11,19 @@ class BaseLogHandler(BaseHandler):
     def handler_type(self):
         return HandlerType.LOG
 
-    def add_trace_log(self):
-        raise NotImplemented
-
     def output(self):
         raise NotImplemented
 
 
-class StreamLogHandler(BaseHandler):
+class StreamLogHandler(BaseLogHandler):
     
     def __init__(self) -> None:
-        self.trace_log_list = []
-
-    def add_trace_log(self, log):
-        self.trace_log_list.append(log)
-
-    def output(self):
-        for trace_log in self.trace_list:
-            logger.info('text=[{text}] tx=[{tx}] origin=[{origin}] execute rule=[{rule}] at {time_at} hit={hit}'.format(
-                text=trace_log.text,
-                tx=trace_log.tx,
-                origin=trace_log.origin,
-                rule=trace_log.rule,
-                time_at=trace_log.time_at,
-                hit=trace_log.hit
-            ))
-        self.trace_log_list = []
-    
+        super(StreamLogHandler, self).__init__()
+        
+    def output(self, context: Context):    
+        log = ExecuteLog(origin=context.origin, text=context.text, 
+                   tx=context.tx, app=context.app, 
+                   hit_rules=context.hit_rules,
+                   time_at=time.time()
+                   )
+        print('log entry:', log)
