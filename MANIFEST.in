@@ -1,0 +1,3 @@
+include *.md *.py
+recursive-exclude __pycache__
+exclude venv tmp
