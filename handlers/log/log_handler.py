@@ -1,4 +1,5 @@
 import logging
+import pprint
 import time
 from handlers import HandlerType, BaseHandler
 from models.rule import App, ExecuteLog
@@ -30,10 +31,12 @@ class StreamLogHandler(BaseLogHandler):
                 )
 
         log = ExecuteLog(
-                   action=context.action, app=app, 
+                   app=app,
                    hit_rules=context.hit_rules,
+                   action=context.action, 
                    time_at=time.time()
                    )
         if hasattr(context, 'error'):
             log.error = context.error
-        print('log entry:', log)
+        pprint.pprint(log)
+        print('\n')

@@ -13,7 +13,7 @@ class BaseContext(object):
     sign_type: SignType = dataclasses.field(init=False)
     
     def __post_init__(self):
-        self.origin = self.action.origin
+        self.origin = self.get_origin(self.action.origin)
         self.domain = self.get_domain(self.origin)
     
     def is_null(self, obj):
@@ -27,6 +27,11 @@ class BaseContext(object):
 
     def is_not_in_list(self, obj, dest_list):
         return not self.is_in_list(obj, dest_list)
+
+    def get_origin(self, origin):
+        if not origin:
+            return ''
+        return origin.rstrip('/')
 
     def get_domain(self, origin):
         if not origin:

@@ -53,10 +53,10 @@ class Response(object):
 
 @dataclasses.dataclass()
 class ExecuteLog(object):
-    action: BaseAction
     app: App
-    hit_rules: list[Rule]
+    action: BaseAction
     time_at: int
+    hit_rules: list[Rule]
     error: str = None
     
 

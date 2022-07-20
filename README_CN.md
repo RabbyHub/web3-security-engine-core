@@ -69,7 +69,13 @@ def main():
             'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git',
             'branch': 'master',
             'origin': 'https://dapp.com'
+        },
+        {
+            'url': 'git@github.com:DeBankDeFi/dapp-security-rules.git',
+            'branch': 'main',
+            'origin': 'https://debank.com'
         }
+
     ]
 
     engine = SecurityEngineCore()
@@ -96,14 +102,18 @@ def main():
                 "to": "0x5853ed4f26a3fcea565b3fbc698bb19cdf6deb85",
                 "value": "0x5efe7ec8b12d9c8"
             },
-            "origin": "https://quickswap.exchange"
+            "origin": "https://debank.com/"
         },
-
         {
             "text": '''Please sign to let us verify that you are the owner of this address 0x133ad1b948badb72ea0cfbb5a724b5b77c9b6311.
 [2022-07-20 06:15:02]''',
             "chain_id": 1,
-            "origin": "https://dapp.com"
+            "origin": "https://debank.com/"
+        },
+        {
+            "text": '''Spam text signature''',
+            "chain_id": 1,
+            "origin": "https://debank.com/"
         }
     ]
 
@@ -120,6 +130,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 ```
 
