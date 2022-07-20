@@ -80,12 +80,12 @@ def main():
         {
             'url': 'git@github.com:RabbyHub/example-common-security-rule.git',
             'branch': 'master',
-            'domain': 'common',
+            'origin': 'common',
         },
         {
             'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git',
             'branch': 'master',
-            'domain': 'app.uniswap.org'
+            'origin': 'https://app.uniswap.org'
         }
     ]
 

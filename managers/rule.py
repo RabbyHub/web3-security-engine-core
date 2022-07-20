@@ -1,4 +1,4 @@
-from git import refresh
+from models.rule import COMMON_ORIGIN
 
 
 class RuleManager(object):
@@ -17,9 +17,9 @@ class RuleManager(object):
     def filter(self, origin=''):
         rule_app_list = []
         for app in self.app_list:
-            if app.domain == 'common':
+            if app.origin == COMMON_ORIGIN:
                 rule_app_list.append(app)
-            elif app.domain in origin:
+            elif app.origin == origin:
                 rule_app_list.append(app)
         return rule_app_list
                 

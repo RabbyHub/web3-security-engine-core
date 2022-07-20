@@ -1,6 +1,5 @@
 import copy
 
-
 class ContextManager(object):
     
     def __init__(self, context) -> None:

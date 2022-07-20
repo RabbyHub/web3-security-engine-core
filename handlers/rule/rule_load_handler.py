@@ -2,9 +2,10 @@ import os
 import logging
 import yaml
 import re
+import json
 import itertools
 import shutil
-from models.rule import Rule, App
+from models.rule import Rule, App, DATA_SOURCE, SignType
 from git import Repo
 from handlers import HandlerType, BaseHandler
 
@@ -37,8 +38,8 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         }
         '''
         self.app_list = app_list
-        self.transaction_rule_dirname = 'transaction'
-        self.data_source_dirname = 'data_source'
+        self.sign_type_list = [SignType.text, SignType.transaction]
+        self.data_source_dirname = DATA_SOURCE
 
     def fetch_raw(self):
         if not os.path.exists(REPO_TMP_DIR):
@@ -55,8 +56,12 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         return items
     
     def parse_rule(self, app_name):
-        rule_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, self.transaction_rule_dirname), self._load_rules)
-        rule_list = list(itertools.chain(*rule_dict.values()))
+        rule_list = []
+        for sign_type in self.sign_type_list:
+            rule_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, sign_type.name), self._load_rules)            
+            for rule in itertools.chain(*rule_dict.values()):
+                rule.sign_type = sign_type
+                rule_list.append(rule)
         return rule_list
 
     def _load_rules(self, file):
@@ -67,24 +72,25 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
     def parse_data_source(self, app_name):
         raw_data_source_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, self.data_source_dirname), self._load_data_source)
         data_source_dict = {filename.split('.')[0]: value for filename, value in raw_data_source_dict.items()}
-        return type('data_source', (object,), data_source_dict)
+        return type(DATA_SOURCE, (object,), data_source_dict)
         
     def _load_data_source(self, file):
-        items = []
+        suffix = file.split('.')[-1]
         with open(file) as f:
-            for line in f:
-                if line.startswith('#'):
-                    continue
-                l = line.split('#')[0]
-                items.append(l.strip()) if l else None
-        return items
+            if suffix == 'json':
+                item = json.load(f)
+            elif suffix == 'txt':
+                item = f.read()
+            elif suffix == 'yaml':
+                item = yaml.safe_load(f)
+        return item
 
     def parse(self):
         app_list = []
         for app in self.app_list:
             rule_list = self.parse_rule(app['name'])
             data_source = self.parse_data_source(app['name'])
-            app = App(name=app['name'], domain=app['domain'], rules=rule_list, data_source=data_source, is_active=True, version=app['version'])
+            app = App(name=app['name'], origin=app['origin'], rules=rule_list, data_source=data_source, is_active=True, version=app['version'])
             app_list.append(app)
         return app_list
 
@@ -100,12 +106,12 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
             {
                 'url': 'https://github.com/RabbyHub/example-common-security-rule.git',
                 'branch': 'main',
-                'domain': 'domain'
+                'origin': 'common'
             },
             {
                 'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git',
                 'branch': 'v0.0.1',
-                'domain': 'dapp.com'
+                'origin': 'https://dapp.com'
             }
         ]
         '''
@@ -128,7 +134,7 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
             app_list.append(dict(
                 name=cls.get_app_name(repo['url']),
                 version=repo['branch'],
-                domain=repo['domain']
+                origin=repo['origin']
             ))
         return app_list
 

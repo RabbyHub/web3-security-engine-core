@@ -1,8 +1,5 @@
 import logging
-from readline import insert_text
-import time
-import inspect
-from models.rule import Response
+from models.rule import Hit, Response, Level, App
 from managers.rule import RuleManager
 from managers.log import LogManager
 from managers.context import ContextManager
@@ -17,7 +14,7 @@ class SecurityEngineCore(object):
     def __init__(self, rule_load_handler_list=[]):
         self.rule_manager = RuleManager(load_handlers=rule_load_handler_list)
         
-    def load(self, refresh=False):
+    def load(self, refresh=True):
         self.rule_manager.load(refresh=refresh)
     
     def add_handler(self, handler):
@@ -31,31 +28,43 @@ class SecurityEngineCore(object):
     def run(self, context):
         self.context_manager = ContextManager(context=context)
         app_list = self.rule_manager.filter(context.origin)
-        hit_rules = []
+        hits = []
         for app in app_list:
             context = self.context_manager.clone(**dict(data_source=app.data_source))
-            rules = self.run_app(context, app)
-            hit_rules.extend(rules)
-        if hit_rules:
-            res = Response(Hit=True, rules=hit_rules)
-        else:
-            res = Response(Hit=False)
+            hit_rules, level = self.run_app(context, app)
+            if hit_rules:
+                simple_app = App(name=app.name, 
+                    is_active=app.is_active, 
+                    version=app.version, 
+                    origin=app.origin,
+                    data_source=None,
+                    rules=None
+                )
+                hit = Hit(app=simple_app, rules=hit_rules, level=level)
+                hits.append(hit)
+        res = Response(hits=hits)
         return res
 
     @log_manager
     def run_app(self, context, app):
         hit_rules = []
+        level = Level.Safe.name
         for rule in app.rules:
+            if rule.sign_type != context.sign_type:
+                continue
             try:
                 hit = self.execute(context, rule)
                 if not hit:
                     continue
+                if Level[rule.level].value > Level[level].value:
+                    level = rule.level
                 hit_rules.append(rule)
             except Exception as e:
-                logging.error('Eval rule=[%s] error=[%s]', rule.logic, e)
+                self.context_manager.add_property(context, 'error', e)
+                logging.exception('Eval rule=[%s] error=[%s]', rule.logic, e)
         self.context_manager.add_property(context, 'hit_rules', hit_rules)
         self.context_manager.add_property(context, 'app', app)
-        return hit_rules
+        return hit_rules, level
 
     def execute(self, context, rule):
         context_dict = self.context_manager.to_dict(context)

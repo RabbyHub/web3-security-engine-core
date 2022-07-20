@@ -2,7 +2,7 @@ from functools import wraps
 from types import FunctionType
 from typing import Callable, Any, Tuple
 
-from runtime.context import Context
+from runtime.context import BaseContext
 
 
 class LogManager(object):
@@ -22,8 +22,7 @@ class LogManager(object):
 
     def execute(self, fn: FunctionType, *args: Tuple[Any], **kwargs: Any) -> Any:
         res = fn(*args, **kwargs)
-        if args and isinstance(args[1], Context):
-            
+        if args and isinstance(args[1], BaseContext):
             self.output(args[1])
         return res
 
