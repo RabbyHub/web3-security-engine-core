@@ -2,7 +2,7 @@
 
 Web3 安全规则引擎核心模块
 
-![](./process2.jpg)
+![](./process.jpg)
 
 ## Rule
 
@@ -52,29 +52,12 @@ Web3 安全规则引擎核心模块
 
 ```python
 from engine import SecurityEngineCore
-from examples.custom_runtime.context import CustomContext
+from examples.custom_runtime.context import get_context
 from handlers.rule.rule_load_handler import GithubRepoRuleLoadHandler
 from handlers.log.log_handler import StreamLogHandler
-
+from models.action import get_action
 
 def main():
-
-    action = {
-            'transaction': {
-                "chainId": 42161,
-                "data": "0x",
-                "from": "0x34799a3314758b976527f8489e522e835ed8d0d2",
-                "gas": "0x5208",
-                "gasPrice": "0x1dcd65000",
-                "nonce": "0x0",
-                "to": "0x5853ed4f26a3fcea565b3fbc698bb19cdf6deb85",
-                "value": "0x5efe7ec8b12d9c8"
-            },
-            'text': None,
-            'origin': "https://quickswap.exchange"
-        }
-
-    engine = SecurityEngineCore()
 
     app_list = [
         {
@@ -85,10 +68,11 @@ def main():
         {
             'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git',
             'branch': 'master',
-            'origin': 'https://app.uniswap.org'
+            'origin': 'https://dapp.com'
         }
     ]
 
+    engine = SecurityEngineCore()
     rule_load_handler = GithubRepoRuleLoadHandler(app_list)
     engine.add_handler(rule_load_handler)
 
@@ -99,11 +83,40 @@ def main():
     engine.load()
     print('load successfuly.')
 
-    context = CustomContext(action)
-    result = engine.run(context)
 
-    print('hit=%s, rules=%s' % (result.Hit, result.rules))
+    params = [
+        {
+            "transaction": {
+                "chainId": 42161,
+                "data": "0x",
+                "from": "0x34799a3314758b976527f8489e522e835ed8d0d2",
+                "gas": "0x5208",
+                "gasPrice": "0x1dcd65000",
+                "nonce": "0x0",
+                "to": "0x5853ed4f26a3fcea565b3fbc698bb19cdf6deb85",
+                "value": "0x5efe7ec8b12d9c8"
+            },
+            "origin": "https://quickswap.exchange"
+        },
 
+        {
+            "text": '''Please sign to let us verify that you are the owner of this address 0x133ad1b948badb72ea0cfbb5a724b5b77c9b6311.
+[2022-07-20 06:15:02]''',
+            "chain_id": 1,
+            "origin": "https://dapp.com"
+        }
+    ]
+
+    for param in params:
+        action = get_action(param)
+        if not action:
+            print('invalid param')
+            return
+        context = get_context(action)
+        result = engine.run(context)
+
+        print('hits=%s' % result.hits)
+        print('.................')
 
 if __name__ == '__main__':
     main()

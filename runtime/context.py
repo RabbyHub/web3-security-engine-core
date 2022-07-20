@@ -1,6 +1,6 @@
 import dataclasses
 import re
-
+from urllib.parse import urlparse
 from models.transaction import Tx
 from models.action import BaseAction, SignType
 
@@ -9,10 +9,12 @@ from models.action import BaseAction, SignType
 class BaseContext(object):
     action: BaseAction
     origin: str = dataclasses.field(init=False)
+    domain: str = dataclasses.field(init=False)
     sign_type: SignType = dataclasses.field(init=False)
     
     def __post_init__(self):
         self.origin = self.action.origin
+        self.domain = self.get_domain(self.origin)
     
     def is_null(self, obj):
         return False if obj else True
@@ -25,6 +27,11 @@ class BaseContext(object):
 
     def is_not_in_list(self, obj, dest_list):
         return not self.is_in_list(obj, dest_list)
+
+    def get_domain(self, origin):
+        if not origin:
+            return ''
+        return urlparse(origin).netloc
 
 
 @dataclasses.dataclass()

@@ -6,8 +6,6 @@ from models.action import get_action
 
 def main():
     
-    engine = SecurityEngineCore()
-
     app_list = [
         {
             'url': 'git@github.com:RabbyHub/example-common-security-rule.git', 
@@ -20,7 +18,8 @@ def main():
             'origin': 'https://dapp.com'
         }
     ]
-
+    
+    engine = SecurityEngineCore()
     rule_load_handler = GithubRepoRuleLoadHandler(app_list)
     engine.add_handler(rule_load_handler)
 
@@ -31,36 +30,40 @@ def main():
     engine.load()
     print('load successfuly.')
 
-    # params = {
-    #         "transaction": {
-    #             "chainId": 42161, 
-    #             "data": "0x", 
-    #             "from": "0x34799a3314758b976527f8489e522e835ed8d0d2", 
-    #             "gas": "0x5208", 
-    #             "gasPrice": "0x1dcd65000", 
-    #             "nonce": "0x0", 
-    #             "to": "0x5853ed4f26a3fcea565b3fbc698bb19cdf6deb85", 
-    #             "value": "0x5efe7ec8b12d9c8"
-    #         },
-    #         "origin": "https://quickswap.exchange"
-    #     }
+    
+    params = [
+        {
+            "transaction": {
+                "chainId": 42161, 
+                "data": "0x", 
+                "from": "0x34799a3314758b976527f8489e522e835ed8d0d2", 
+                "gas": "0x5208", 
+                "gasPrice": "0x1dcd65000", 
+                "nonce": "0x0", 
+                "to": "0x5853ed4f26a3fcea565b3fbc698bb19cdf6deb85", 
+                "value": "0x5efe7ec8b12d9c8"
+            },
+            "origin": "https://quickswap.exchange"
+        },
 
-    params = {
+        {
             "text": '''Please sign to let us verify that you are the owner of this address 0x133ad1b948badb72ea0cfbb5a724b5b77c9b6311.
 [2022-07-20 06:15:02]''',
             "chain_id": 1,
             "origin": "https://dapp.com"
         }
+    ]   
 
-    action = get_action(params)
-    if not action:
-        print('invalid params')
-        return
-    context = get_context(action)
-    result = engine.run(context)
+    for param in params:
+        action = get_action(param)
+        if not action:
+            print('invalid param')
+            return
+        context = get_context(action)
+        result = engine.run(context)
 
-    print('hits=%s' % result.hits)
-
+        print('hits=%s' % result.hits)
+        print('.................')
 
 if __name__ == '__main__':
     main()

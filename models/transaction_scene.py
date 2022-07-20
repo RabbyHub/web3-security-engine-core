@@ -15,7 +15,7 @@ class TokenTransfer(object):
 
 @dataclasses.dataclass()
 class TokenApprove(object):
-    onwer: str
+    owner: str
     spender: str
     spender_contract: typing.Optional[Contract]
     token: Token
