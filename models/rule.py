@@ -2,9 +2,8 @@ import dataclasses
 from enum import Enum
 from .action import BaseAction, SignType
 
-DATA_SOURCE = 'data_source'
 COMMON_ORIGIN = 'common'
-
+DATA_SOURCE = 'data_source'
 
 class Level(Enum):
     Safe = 0
@@ -27,13 +26,14 @@ class Rule(object):
     logic: str
     sign_type: SignType = dataclasses.field(init=False)
     conditions: list[Condition] = dataclasses.field(default_factory=list)
+    properties: dict = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass()
 class App(object):
     name: str
     rules: list[Rule]
-    data_source: object
+    data_source: dict
     is_active: bool
     version: str
     origin: str = COMMON_ORIGIN

@@ -6,11 +6,15 @@ import json
 import itertools
 import shutil
 from models.rule import Rule, App, DATA_SOURCE, SignType
-from git import Repo
+from git import Object, Repo
 from handlers import HandlerType, BaseHandler
 
 
 REPO_TMP_DIR = './tmp'
+RULE_SET_DIR = 'ruleset'
+ADDRESS_SET_DIR = 'address_set'
+DOMAIN_SET_DIR = 'domain_set'
+SIGN_TEXT_PATTERN_SET_DIR = 'sign_text_pattern_set'
 
 logger = logging.getLogger('rule_load_handler')
 
@@ -31,15 +35,9 @@ class BaseRuleLoadHandler(BaseHandler):
 class FileRuleLoadHandler(BaseRuleLoadHandler):
 
     def __init__(self, app_list) -> None:
-        '''
-        app = {
-            'name': '',
-            'version': ''
-        }
-        '''
         self.app_list = app_list
         self.sign_type_list = [SignType.text, SignType.transaction]
-        self.data_source_dirname = DATA_SOURCE
+        self.data_source_dir_list = [ADDRESS_SET_DIR, DOMAIN_SET_DIR, SIGN_TEXT_PATTERN_SET_DIR]
 
     def fetch_raw(self):
         if not os.path.exists(REPO_TMP_DIR):
@@ -47,18 +45,22 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         return self.app_list
 
     def _walk_dir(self, dir_path, callback):
-        items = {}
+        item = {}
         if os.path.exists(dir_path):
             filenames = [filename for filename in os.listdir(dir_path)]
             for filename in filenames:
-                objs = callback(os.path.join(dir_path, filename))
-                items[filename] = objs
-        return items
+                sub_dir_path = os.path.join(dir_path, filename)
+                if os.path.isdir(sub_dir_path):
+                    objs = self._walk_dir(sub_dir_path, callback)
+                else:
+                    objs = callback(os.path.join(dir_path, filename))
+                item[filename.split('.')[0]] = objs
+        return item
     
     def parse_rule(self, app_name):
         rule_list = []
         for sign_type in self.sign_type_list:
-            rule_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, sign_type.name), self._load_rules)            
+            rule_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, RULE_SET_DIR, sign_type.name), self._load_rules)            
             for rule in itertools.chain(*rule_dict.values()):
                 rule.sign_type = sign_type
                 rule_list.append(rule)
@@ -70,17 +72,37 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
             return [Rule(**raw_rule) for raw_rule in raw_rule_list]
             
     def parse_data_source(self, app_name):
-        raw_data_source_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, self.data_source_dirname), self._load_data_source)
-        data_source_dict = {filename.split('.')[0]: value for filename, value in raw_data_source_dict.items()}
-        return type(DATA_SOURCE, (object,), data_source_dict)
+        data_source_dict = {}
+        for data_source_dirname in self.data_source_dir_list:
+            raw_data_source_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, data_source_dirname), self._load_data_source)
+            data_source_dict.update({
+                data_source_dirname: type(data_source_dirname, (object,), raw_data_source_dict)
+            })
+            # import pdb;pdb.set_trace()
+            # for k, v in raw_data_source_dict.items():
+            #     import pdb;pdb.set_trace()
+                
+            #     data_source_dict.update({
+            #         k: v
+            #     })
+        return data_source_dict
         
     def _load_data_source(self, file):
         suffix = file.split('.')[-1]
+        item = None
         with open(file) as f:
             if suffix == 'json':
                 item = json.load(f)
             elif suffix == 'txt':
-                item = f.read()
+                if SIGN_TEXT_PATTERN_SET_DIR in file:
+                    item = f.read()
+                else:
+                    item = []
+                    for line in f:
+                        if line.startswith('#'):
+                            continue
+                        l = line.split('#')[0]
+                        item.append(l.strip()) if l else None
             elif suffix == 'yaml':
                 item = yaml.safe_load(f)
         return item
@@ -101,30 +123,18 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
 class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
 
     def __init__(self, repo_list) -> None:
-        '''
-        repo_list = [
-            {
-                'url': 'https://github.com/RabbyHub/example-common-security-rule.git',
-                'branch': 'main',
-                'origin': 'common'
-            },
-            {
-                'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git',
-                'branch': 'v0.0.1',
-                'origin': 'https://dapp.com'
-            }
-        ]
-        '''
         self.repo_list = repo_list
         app_list = self.get_app_list(repo_list)
         super(GithubRepoRuleLoadHandler, self).__init__(app_list)
 
     @staticmethod
     def get_app_name(repo_url):
-        pattern = '(git@github.com:|https:\/\/github.com\/)(?P<filepath>.*)\.git'
+        pattern = '(git@github.com:|https:\/\/github.com\/)(?P<filepath>.*)'
         match = re.findall(pattern, repo_url)
         if not match:
             raise Exception('Invalid github repo url:%s' %repo_url)
+        if not repo_url.endswith('.git'):
+            repo_url += '.git'
         return match[0][1].replace('/', '_')
 
     @classmethod
@@ -133,7 +143,7 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
         for repo in repo_list:
             app_list.append(dict(
                 name=cls.get_app_name(repo['url']),
-                version=repo['branch'],
+                version=repo['commit_hash'],
                 origin=repo['origin']
             ))
         return app_list
@@ -150,4 +160,6 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
             local_dst = os.path.join(REPO_TMP_DIR, self.app_list[i]['name'])
             if os.path.exists(local_dst):
                 shutil.rmtree(local_dst)
-            Repo.clone_from(repo['url'], local_dst, multi_options=['-b %s' % repo['branch']])
+            repo_object = Repo.clone_from(repo['url'], local_dst)
+            # import pdb;pdb.set_trace()
+            repo_object.head.reset(commit=repo['commit_hash'])

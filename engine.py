@@ -14,7 +14,7 @@ class SecurityEngineCore(object):
     def __init__(self, rule_load_handler_list=[]):
         self.rule_manager = RuleManager(load_handlers=rule_load_handler_list)
         
-    def load(self, refresh=True):
+    def load(self, refresh=False):
         self.rule_manager.load(refresh=refresh)
     
     def add_handler(self, handler):
@@ -30,7 +30,7 @@ class SecurityEngineCore(object):
         app_list = self.rule_manager.filter(context.origin)
         hits = []
         for app in app_list:
-            context = self.context_manager.clone(**dict(data_source=app.data_source))
+            context = self.context_manager.clone(**app.data_source)
             hit_rules, level = self.run_app(context, app)
             if hit_rules:
                 simple_app = App(name=app.name, 
@@ -48,7 +48,7 @@ class SecurityEngineCore(object):
     @log_manager
     def run_app(self, context, app):
         hit_rules = []
-        level = Level.Safe.name
+        level = Level.Safe.value
         for rule in app.rules:
             if rule.sign_type != context.sign_type:
                 continue
@@ -56,7 +56,7 @@ class SecurityEngineCore(object):
                 hit = self.execute(context, rule)
                 if not hit:
                     continue
-                if Level[rule.level].value > Level[level].value:
+                if rule.level > level:
                     level = rule.level
                 hit_rules.append(rule)
             except Exception as e:
@@ -68,6 +68,9 @@ class SecurityEngineCore(object):
 
     def execute(self, context, rule):
         context_dict = self.context_manager.to_dict(context)
+        if rule.properties:
+            properties = {k: eval(v, context_dict) for k, v in rule.properties.items()}
+            context_dict.update(properties)
         if rule.conditions:
             for condition in rule.conditions:
                 rule.logic = rule.logic.replace(condition['condition'], '(%s)' % condition['logic'])

@@ -48,7 +48,7 @@ class TextContext(BaseContext):
         self.text = self.action.text
         self.sign_type = SignType.text
 
-    def is_match_text_sign(self, text, text_sign_pattern):
+    def match_sign_text(self, text, text_sign_pattern):
         p = re.compile(text_sign_pattern)
         m = p.match(text)
         return True if m else False

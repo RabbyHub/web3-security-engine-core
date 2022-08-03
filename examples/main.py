@@ -9,20 +9,14 @@ def main():
     app_list = [
         {
             'url': 'git@github.com:RabbyHub/example-common-security-rule.git', 
-            'branch': 'master',
+            'commit_hash': '999a5b2e175c0e2612b45b0e5abaebfb840eb63e',
             'origin': 'common',
         },
         {
             'url': 'git@github.com:RabbyHub/example-dapp-security-rule.git', 
-            'branch': 'master',
-            'origin': 'https://dapp.com'
-        },
-        {
-            'url': 'git@github.com:DeBankDeFi/dapp-security-rules.git', 
-            'branch': 'main',
-            'origin': 'https://debank.com'
+            'commit_hash': '928e2c8cb41864c81c2c65a69b000c3761c8306c',
+            'origin': 'common'
         }
-        
     ]
     
     engine = SecurityEngineCore()

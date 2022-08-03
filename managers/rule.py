@@ -14,6 +14,10 @@ class RuleManager(object):
     def add_load_handler(self, handler):
         self.load_handlers.append(handler)
     
+    def validate():
+        # todo sandbox validate
+        pass
+    
     def filter(self, origin=''):
         rule_app_list = []
         for app in self.app_list:
