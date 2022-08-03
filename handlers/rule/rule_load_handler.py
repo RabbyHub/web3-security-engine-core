@@ -10,7 +10,7 @@ from git import Object, Repo
 from handlers import HandlerType, BaseHandler
 
 
-REPO_TMP_DIR = './tmp'
+REPO_TMP_DIR = '/tmp'
 RULE_SET_DIR = 'ruleset'
 ADDRESS_SET_DIR = 'address_set'
 DOMAIN_SET_DIR = 'domain_set'
