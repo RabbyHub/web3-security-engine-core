@@ -2,7 +2,7 @@ from functools import wraps
 from types import FunctionType
 from typing import Callable, Any, Tuple
 
-from runtime.context import BaseContext
+from security_engine.runtime.context import BaseContext
 
 
 class LogManager(object):

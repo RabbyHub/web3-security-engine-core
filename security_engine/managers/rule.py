@@ -1,4 +1,4 @@
-from models.rule import COMMON_ORIGIN
+from security_engine.models.rule import COMMON_ORIGIN
 
 
 class RuleManager(object):

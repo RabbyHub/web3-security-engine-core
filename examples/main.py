@@ -1,8 +1,8 @@
-from engine import SecurityEngineCore
+from security_engine.engine import SecurityEngineCore
 from examples.custom_runtime.context import get_context
-from handlers.rule.rule_load_handler import GithubRepoRuleLoadHandler
-from handlers.log.log_handler import StreamLogHandler
-from models.action import get_action
+from security_engine.handlers.rule.rule_load_handler import GithubRepoRuleLoadHandler
+from security_engine.handlers.log.log_handler import StreamLogHandler
+from security_engine.models.action import get_action
 
 def main():
     

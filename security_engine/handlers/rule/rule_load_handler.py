@@ -5,9 +5,9 @@ import re
 import json
 import itertools
 import shutil
-from models.rule import Rule, App, DATA_SOURCE, SignType
-from git import Object, Repo
-from handlers import HandlerType, BaseHandler
+from security_engine.models.rule import Rule, App, SignType
+from git import Repo
+from security_engine.handlers import HandlerType, BaseHandler
 
 
 REPO_TMP_DIR = '/tmp'

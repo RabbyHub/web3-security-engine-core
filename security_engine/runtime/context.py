@@ -1,8 +1,8 @@
 import dataclasses
 import re
 from urllib.parse import urlparse
-from models.transaction import Tx
-from models.action import BaseAction, SignType
+from security_engine.models.transaction import Tx
+from security_engine.models.action import BaseAction, SignType
 
 
 @dataclasses.dataclass()

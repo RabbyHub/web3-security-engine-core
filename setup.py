@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name="web3-security-rule-engine",
+    name="web3-security-engine",
     version="1.0",
     author="Debank",
     author_email="0xjeffer@gmail.com",
-    description="Web3 Security Rule Engine",
+    description="Web3 Security Engine",
     url="web3 security rule engine", 
     packages=find_packages(),
     python_requires='>=3.7',

@@ -1,9 +1,9 @@
 import logging
-from models.rule import Hit, Response, Level, App
-from managers.rule import RuleManager
-from managers.log import LogManager
-from managers.context import ContextManager
-from handlers import BaseHandler, HandlerType
+from security_engine.models.rule import Hit, Response, Level, App
+from security_engine.managers.rule import RuleManager
+from security_engine.managers.log import LogManager
+from security_engine.managers.context import ContextManager
+from security_engine.handlers import HandlerType
 
 
 log_manager = LogManager()
