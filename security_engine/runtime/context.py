@@ -62,10 +62,10 @@ class TransactionContext(BaseContext):
             data=tx.get('data', '0x'),
             from_=tx.get('from', '').lower(),
             to=tx.get('to', '').lower(),
-            gas=int(tx.get('gas', '0x'), 16),
-            gas_price=int(tx.get('gasPrice', '0x'), 16),
-            max_fee_per_gas=int(tx.get('maxFeePerGas', '0x'), 16),
-            max_priority_fee_per_gas=int(tx.get('maxPriorityFeePerGas', '0x'), 16),
-            nonce=int(tx.get('nonce', '0x'), 16),
-            value=int(tx.get('value'), 16)
+            gas=int(tx.get('gas', '0x0'), 16),
+            gas_price=int(tx.get('gasPrice', '0x0'), 16),
+            max_fee_per_gas=int(tx.get('maxFeePerGas', '0x0'), 16),
+            max_priority_fee_per_gas=int(tx.get('maxPriorityFeePerGas', '0x0'), 16),
+            nonce=int(tx.get('nonce', '0x0'), 16),
+            value=int(tx.get('value', '0x0'), 16)
         ))

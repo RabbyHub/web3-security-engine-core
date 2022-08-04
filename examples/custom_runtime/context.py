@@ -2,7 +2,7 @@ import dataclasses
 from security_engine.models.action import SignType
 from security_engine.models.chain import Chain
 from security_engine.runtime.context import TransactionContext, TextContext
-from security_engine.models.transaction_scene import TokenTransfer, TokenApprove, NFTApprove, NFTCollectionApprove
+from security_engine.models.sign_scene import TokenTransfer, TokenApprove, NFTApprove, NFTCollectionApprove
 from security_engine.models.token import Token
 from security_engine.models.address import Address
 
@@ -10,7 +10,6 @@ from security_engine.models.address import Address
 @dataclasses.dataclass()
 class CustomTransactionContext(TransactionContext):
 
-    chain: Chain = dataclasses.field(init=False)
     token_transfer: TokenTransfer = None
     nft_approve: NFTApprove = None
     nft_collection_approve: NFTCollectionApprove = None
@@ -18,26 +17,7 @@ class CustomTransactionContext(TransactionContext):
 
     def __post_init__(self):
         super(CustomTransactionContext, self).__post_init__()
-        self.chain = self.get_chain(self.action.chain_id)
     
-    @property
-    def chain_map(self):
-        return {
-            1: {
-                'network_id': 1,
-                'identifier': 'eth',
-                'name': 'Ethereum'
-            },
-            56: {
-                'network_id': 56,
-                'identifier': 'bsc',
-                'name': 'BSC'
-            }
-        }
-
-    # def token_transfer(self):
-    #     return None
-
     def token_approve(self):
         return TokenApprove(onwer='0xB8c77482e45F1F44dE1745F52C74426C631bDD52', spender='0xB8c77482e45F1F44dE1745F52C74426C631bDD52', spender_contract=None, token=None, amount=1)
 
@@ -45,11 +25,6 @@ class CustomTransactionContext(TransactionContext):
         return None
 
     def nft_collection_approve(self):
-        return None
-
-    def get_chain(self, chain_id):
-        if chain_id in self.chain_map:
-            return Chain(id=chain_id, identifier=self.chain_map[id]['identifier'], name=self.chain_map[id]['name'])
         return None
 
     def get_token(self, id):

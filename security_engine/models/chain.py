@@ -3,8 +3,8 @@ import dataclasses
 
 @dataclasses.dataclass()
 class Chain(object):
-    id: int
-    identifier: str
+    network_id: int
+    id: str  # identifier, eg. eth, arb
     name: str = ''
 
 
