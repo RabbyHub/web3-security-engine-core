@@ -3,6 +3,7 @@ import re
 from urllib.parse import urlparse
 from security_engine.models.transaction import Tx
 from security_engine.models.action import BaseAction, SignType
+from security_engine.models.chain import Chain
 
 
 @dataclasses.dataclass()
@@ -11,23 +12,12 @@ class BaseContext(object):
     origin: str = dataclasses.field(init=False)
     domain: str = dataclasses.field(init=False)
     sign_type: SignType = dataclasses.field(init=False)
+    chain: Chain = dataclasses.field(init=False)
     
     def __post_init__(self):
         self.origin = self.get_origin(self.action.origin)
         self.domain = self.get_domain(self.origin)
     
-    def is_null(self, obj):
-        return False if obj else True
-
-    def is_not_null(self, obj):
-        return not self.is_null(obj)
-
-    def is_in_list(self, obj, dest_list):
-        return True if obj in dest_list else False
-
-    def is_not_in_list(self, obj, dest_list):
-        return not self.is_in_list(obj, dest_list)
-
     def get_origin(self, origin):
         if not origin:
             return ''
@@ -73,7 +63,9 @@ class TransactionContext(BaseContext):
             from_=tx.get('from', '').lower(),
             to=tx.get('to', '').lower(),
             gas=int(tx.get('gas', '0x'), 16),
-            gas_price=tx.get('gasPrice', 0),
-            nonce=int(tx.get('nonce'), 16),
+            gas_price=int(tx.get('gasPrice', '0x'), 16),
+            max_fee_per_gas=int(tx.get('maxFeePerGas', '0x'), 16),
+            max_priority_fee_per_gas=int(tx.get('maxPriorityFeePerGas', '0x'), 16),
+            nonce=int(tx.get('nonce', '0x'), 16),
             value=int(tx.get('value'), 16)
         ))

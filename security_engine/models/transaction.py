@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 
-# transaction
+
 @dataclasses.dataclass()
 class Tx(object):
     
@@ -15,6 +15,6 @@ class Tx(object):
     gas_price: typing.Optional[int]
     max_fee_per_gas: typing.Optional[int] = 0
     max_priority_fee_per_gas: typing.Optional[int] = 0
-
-
+    params: typing.Optional[typing.List[dict]] = dataclasses.field(default_factory=list)
+    func: typing.Optional[str] = ''
 
