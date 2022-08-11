@@ -103,7 +103,6 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         app_list = []
         for app in self.app_list:
             rule_list = self.parse_rule(app['name'])
-            import pdb;pdb.set_trace()
             data_source = self.parse_data_source(app['name'])
             app = App(name=app['name'], origin=app['origin'], rules=rule_list, data_source=data_source, is_active=True, version=app['version'])
             app_list.append(app)

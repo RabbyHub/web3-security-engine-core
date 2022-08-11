@@ -6,26 +6,26 @@ from security_engine.models.action import get_action
 
 def main():
     
-    app_list = [
-        # {
-        #     'url': 'https://github.com/RabbyHub/example-common-security-rule', 
-        #     'commit_hash': '999a5b2e175c0e2612b45b0e5abaebfb840eb63e',
-        #     'origin': 'common',
-        # },
-        # {
-        #     'url': 'https://github.com/RabbyHub/example-dapp-security-rule', 
-        #     'commit_hash': '928e2c8cb41864c81c2c65a69b000c3761c8306c',
-        #     'origin': 'common'
-        # }
-        {
-            'url': 'https://github.com/RabbyHub/web3-security-rules',
-            'commit_hash': 'a72d4c8b669bf8493d772f5b4097e82db85c4318',
-            'origin': 'common'
-        }
-    ]
+    repo_list = [
+            {
+                'url': 'https://github.com/RabbyHub/web3-security-rules',
+                'commit_hash': 'a72d4c8b669bf8493d772f5b4097e82db85c4318',
+                'origin': 'common',
+            },
+            {
+                'url': 'https://github.com/RabbyHub/example-dapp-security-rule',
+                'commit_hash': '928e2c8cb41864c81c2c65a69b000c3761c8306c',
+                'origin': 'http://debank.com',
+            },
+            {
+                'url': 'https://github.com/RabbyHub/example-common-security-rule',
+                'commit_hash': '999a5b2e175c0e2612b45b0e5abaebfb840eb63e',
+                'origin': 'common',
+            },
+        ]
     
     engine = SecurityEngineCore()
-    rule_load_handler = GithubRepoRuleLoadHandler(app_list, 'demo_token')
+    rule_load_handler = GithubRepoRuleLoadHandler(repo_list, 'demo token')
     engine.add_handler(rule_load_handler)
 
     # Add default log handler

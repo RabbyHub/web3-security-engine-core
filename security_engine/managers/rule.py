@@ -15,10 +15,6 @@ class RuleManager(object):
     def add_load_handler(self, handler):
         self.load_handlers.append(handler)
     
-    def validate():
-        # todo sandbox validate
-        pass
-    
     def get_data_source_dict(self, app):
         data_source_dict = {}
         for k, v in app.data_source.items():

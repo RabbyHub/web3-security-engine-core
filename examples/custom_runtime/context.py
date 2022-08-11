@@ -28,7 +28,7 @@ class CustomTransactionContext(TransactionContext):
         return None
 
     def get_token(self, id):
-        return Token(id='0xB8c77482e45F1F44dE1745F52C74426C631bDD52', name='BNB', symbol='BNB', decimals=18, total_supply=100000, contract=None)
+        return Token(id='0xB8c77482e45F1F44dE1745F52C74426C631bDD52', name='DEMO', symbol='BNB', decimals=18, total_supply=100000, contract=None)
     
     def get_address(self, id):
         return None
