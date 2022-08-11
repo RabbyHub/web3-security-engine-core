@@ -1,4 +1,5 @@
 from security_engine.models.rule import COMMON_ORIGIN
+from security_engine.models.data_source import DataSource
 
 
 class RuleManager(object):
@@ -18,6 +19,12 @@ class RuleManager(object):
         # todo sandbox validate
         pass
     
+    def get_data_source_dict(self, app):
+        data_source_dict = {}
+        for k, v in app.data_source.items():
+            data_source_dict[k] = DataSource.from_dict(v)
+        return data_source_dict
+
     def filter(self, origin=''):
         rule_app_list = []
         for app in self.app_list:

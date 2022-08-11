@@ -6,6 +6,7 @@ from .action import BaseAction, SignType
 COMMON_ORIGIN = 'common'
 DATA_SOURCE = 'data_source'
 
+
 class Level(Enum):
     Safe = 0
     Warning = 1
@@ -59,5 +60,4 @@ class ExecuteLog(object):
     time_at: int
     hit_rules: List[Rule]
     error: str = None
-    
 

@@ -14,7 +14,7 @@ class SecurityEngineCore(object):
     def __init__(self, rule_load_handler_list=[]):
         self.rule_manager = RuleManager(load_handlers=rule_load_handler_list)
         
-    def load(self, refresh=False):
+    def load(self, refresh=True):
         self.rule_manager.load(refresh=refresh)
     
     def add_handler(self, handler):
@@ -30,7 +30,8 @@ class SecurityEngineCore(object):
         app_list = self.rule_manager.filter(context.origin)
         hits = []
         for app in app_list:
-            context = self.context_manager.clone(**app.data_source)
+            data_source_dict = self.rule_manager.get_data_source_dict(app)
+            context = self.context_manager.clone(**data_source_dict)
             hit_rules, level = self.run_app(context, app)
             if hit_rules:
                 simple_app = App(name=app.name, 
@@ -50,7 +51,7 @@ class SecurityEngineCore(object):
         hit_rules = []
         level = Level.Safe.value
         for rule in app.rules:
-            if rule.sign_type != context.sign_type:
+            if rule.sign_type != context.sign_type.value:
                 continue
             try:
                 hit = self.execute(context, rule)

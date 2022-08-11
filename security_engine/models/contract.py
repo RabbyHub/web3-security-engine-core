@@ -9,6 +9,6 @@ class Contract(object):
     code_id: str
     creator: str
     is_token: bool
-    is_susicide: bool
+    is_suicide: bool
     is_multisig: bool
 

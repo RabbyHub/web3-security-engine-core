@@ -1,20 +1,21 @@
 import os
 import logging
 import yaml
+import io
+import zipfile
 import re
 import json
+import requests
 import itertools
 import shutil
 from security_engine.models.rule import Rule, App, SignType
-from git import Repo
+from security_engine.models.data_source import AddressSet, DomainSet, SignTextPatternSet
 from security_engine.handlers import HandlerType, BaseHandler
 
 
-REPO_TMP_DIR = '/tmp'
+REPO_TMP_DIR = 'tmp'
 RULE_SET_DIR = 'ruleset'
-ADDRESS_SET_DIR = 'address_set'
-DOMAIN_SET_DIR = 'domain_set'
-SIGN_TEXT_PATTERN_SET_DIR = 'sign_text_pattern_set'
+
 
 logger = logging.getLogger('rule_load_handler')
 
@@ -37,7 +38,7 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
     def __init__(self, app_list) -> None:
         self.app_list = app_list
         self.sign_type_list = [SignType.text, SignType.transaction]
-        self.data_source_dir_list = [ADDRESS_SET_DIR, DOMAIN_SET_DIR, SIGN_TEXT_PATTERN_SET_DIR]
+        self.data_source_class_list = [AddressSet, DomainSet, SignTextPatternSet]
 
     def fetch_raw(self):
         if not os.path.exists(REPO_TMP_DIR):
@@ -62,7 +63,7 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         for sign_type in self.sign_type_list:
             rule_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, RULE_SET_DIR, sign_type.name), self._load_rules)            
             for rule in itertools.chain(*rule_dict.values()):
-                rule.sign_type = sign_type
+                rule.sign_type = sign_type.value
                 rule_list.append(rule)
         return rule_list
 
@@ -73,18 +74,9 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
             
     def parse_data_source(self, app_name):
         data_source_dict = {}
-        for data_source_dirname in self.data_source_dir_list:
-            raw_data_source_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, data_source_dirname), self._load_data_source)
-            data_source_dict.update({
-                data_source_dirname: type(data_source_dirname, (object,), raw_data_source_dict)
-            })
-            # import pdb;pdb.set_trace()
-            # for k, v in raw_data_source_dict.items():
-            #     import pdb;pdb.set_trace()
-                
-            #     data_source_dict.update({
-            #         k: v
-            #     })
+        for data_source_class in self.data_source_class_list:
+            raw_data_source_dict = self._walk_dir(os.path.join(REPO_TMP_DIR, app_name, data_source_class.__name__), self._load_data_source)
+            data_source_dict.update({data_source_class.__name__: raw_data_source_dict})
         return data_source_dict
         
     def _load_data_source(self, file):
@@ -94,7 +86,7 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
             if suffix == 'json':
                 item = json.load(f)
             elif suffix == 'txt':
-                if SIGN_TEXT_PATTERN_SET_DIR in file:
+                if SignTextPatternSet.__name__ in file:
                     item = f.read()
                 else:
                     item = []
@@ -111,6 +103,7 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
         app_list = []
         for app in self.app_list:
             rule_list = self.parse_rule(app['name'])
+            import pdb;pdb.set_trace()
             data_source = self.parse_data_source(app['name'])
             app = App(name=app['name'], origin=app['origin'], rules=rule_list, data_source=data_source, is_active=True, version=app['version'])
             app_list.append(app)
@@ -122,19 +115,18 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
 
 class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
 
-    def __init__(self, repo_list) -> None:
+    def __init__(self, repo_list, auth_token) -> None:
+        self.headers = {'Accept': 'application/vnd.github+json', 'Authorization': auth_token }
         self.repo_list = repo_list
         app_list = self.get_app_list(repo_list)
         super(GithubRepoRuleLoadHandler, self).__init__(app_list)
 
     @staticmethod
     def get_app_name(repo_url):
-        pattern = '(git@github.com:|https:\/\/github.com\/)(?P<filepath>.*)'
+        pattern = '(https:\/\/github.com\/)(?P<filepath>.*)'
         match = re.findall(pattern, repo_url)
         if not match:
-            raise Exception('Invalid github repo url:%s' %repo_url)
-        if not repo_url.endswith('.git'):
-            repo_url += '.git'
+            raise Exception('Invalid github repo url:%s' % repo_url)
         return match[0][1].replace('/', '_')
 
     @classmethod
@@ -158,8 +150,17 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
         assert len(self.repo_list) == len(self.app_list)
         for i, repo in enumerate(self.repo_list):
             local_dst = os.path.join(REPO_TMP_DIR, self.app_list[i]['name'])
-            if os.path.exists(local_dst):
-                shutil.rmtree(local_dst)
-            repo_object = Repo.clone_from(repo['url'], local_dst)
-            # import pdb;pdb.set_trace()
-            repo_object.head.reset(commit=repo['commit_hash'])
+            self.download_repo_file(repo, local_dst)
+
+    def download_repo_file(self, repo, local_dst):
+        if os.path.exists(local_dst):
+            shutil.rmtree(local_dst)
+        *_, owner, repo_name = repo['url'].split('/')
+        
+        gen_download_url = "https://api.github.com/repos/{owner}/{repo_name}/zipball/{commit_hash}".format(owner=owner, repo_name=repo_name, commit_hash=repo['commit_hash'])
+        archive_url = requests.get(gen_download_url, headers=self.headers).url
+        r = requests.get(archive_url)
+
+        zip_ref = zipfile.ZipFile(io.BytesIO(r.content))
+        zip_ref.extractall(REPO_TMP_DIR)
+        os.rename(os.path.join(REPO_TMP_DIR, zip_ref.namelist()[0]), local_dst)
