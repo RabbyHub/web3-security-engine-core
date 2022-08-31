@@ -17,8 +17,14 @@ class RuleManager(object):
     
     def get_data_source_dict(self, app):
         data_source_dict = {}
-        for k, v in app.data_source.items():
-            data_source_dict[k] = DataSource.from_dict(v)
+        for set_name, source_dict in app.data_source.items():
+            source = {}
+            for k, v in source_dict.items():
+                if callable(v):
+                    source[k] = v()
+                else:
+                    source[k] = v
+            data_source_dict[set_name] = DataSource.from_dict(source)
         return data_source_dict
 
     def filter(self, origin=''):
