@@ -9,8 +9,10 @@ class RuleManager(object):
         self.app_list = []
 
     def load(self, refresh=True):
+        app_list = []
         for load_handler in self.load_handlers:
-            self.app_list.extend(load_handler.load(refresh=refresh))
+            app_list.extend(load_handler.load(refresh=refresh))
+        self.app_list = app_list
         
     def add_load_handler(self, handler):
         self.load_handlers.append(handler)

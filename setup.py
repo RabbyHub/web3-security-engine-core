@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="web3-security-engine",
-    version="1.2.3",
+    version="1.2.4",
     author="Debank",
     author_email="security@debank.com",
     description="Web3 Security Engine",
