@@ -6,6 +6,7 @@ import dataclasses
 class SignType(Enum):
     transaction = 1
     text = 2
+    typed_data = 3
 
 
 @dataclasses.dataclass()
@@ -15,6 +16,7 @@ class BaseAction(object):
     
     def __post_init__(self):
         pass
+
 
 @dataclasses.dataclass()
 class TransactionAction(BaseAction):
@@ -29,13 +31,25 @@ class TransactionAction(BaseAction):
 
 @dataclasses.dataclass()
 class TextAction(BaseAction):
-
-    text: str
+    
     chain_id: int
+    text: str
         
     def __post_init__(self):
         super(TextAction, self).__post_init__()
         self.sign_type = SignType.text
+
+
+@dataclasses.dataclass()
+class TypedDataAction(BaseAction):
+
+    chain_id: int = dataclasses.field(init=False)
+    typed_data: dict
+    
+    def __post_init__(self):
+        super(TypedDataAction, self).__post_init__()
+        self.sign_type = SignType.typed_data
+        self.chain_id = self.typed_data['domain']['chainId']
 
 
 def get_action(params):
@@ -43,6 +57,8 @@ def get_action(params):
         action = TransactionAction(**params)
     elif SignType.text.name in params:
         action = TextAction(**params)
+    elif SignType.typed_data.name in params:
+        action = TypedDataAction(**params)
     else:
         return None
     return action

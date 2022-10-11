@@ -2,6 +2,7 @@ import dataclasses
 import re
 from urllib.parse import urlparse
 from security_engine.models.transaction import Tx
+from security_engine.models.typed_data import TypedData
 from security_engine.models.action import BaseAction, SignType
 from security_engine.models.chain import Chain
 
@@ -10,23 +11,16 @@ from security_engine.models.chain import Chain
 class BaseContext(object):
     action: BaseAction
     origin: str = dataclasses.field(init=False)
-    domain: str = dataclasses.field(init=False)
     sign_type: SignType = dataclasses.field(init=False)
     chain: Chain = dataclasses.field(init=False)
     
     def __post_init__(self):
         self.origin = self.get_origin(self.action.origin)
-        self.domain = self.get_domain(self.origin)
     
     def get_origin(self, origin):
         if not origin:
             return ''
         return origin.rstrip('/')
-
-    def get_domain(self, origin):
-        if not origin:
-            return ''
-        return urlparse(origin).netloc
 
 
 @dataclasses.dataclass()
@@ -42,6 +36,30 @@ class TextContext(BaseContext):
         p = re.compile(text_sign_pattern)
         m = p.match(text)
         return True if m else False
+
+
+@dataclasses.dataclass()
+class TypedDataContext(BaseContext):
+    typed_data: TypedData = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        super(TypedDataContext, self).__post_init__()
+        self.typed_data = self.get_typed_data(self.action)
+        self.sign_type = SignType.typed_data
+
+    def get_typed_data(self, action):
+        data = action.typed_data
+        if not data:
+            return
+        return TypedData(**dict(
+            chain_id=data['domain']['chainId'],
+            version=data['domain']['version'],
+            name=data['domain']['name'],
+            verifying_contract=data['domain']['verifyingContract'],
+            primary_type=data['primaryType'],
+            types=data['types'],
+            message=data['message']
+        ))
 
 
 @dataclasses.dataclass()

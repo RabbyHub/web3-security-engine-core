@@ -37,7 +37,7 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
 
     def __init__(self, app_list) -> None:
         self.app_list = app_list
-        self.sign_type_list = [SignType.text, SignType.transaction]
+        self.sign_type_list = [SignType.text, SignType.typed_data, SignType.transaction]
         self.data_source_class_list = [AddressSet, DomainSet, SignTextPatternSet]
 
     def fetch_raw(self):
@@ -155,7 +155,6 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
         if os.path.exists(local_dst):
             shutil.rmtree(local_dst)
         *_, owner, repo_name = repo['url'].split('/')
-        
         gen_download_url = "https://api.github.com/repos/{owner}/{repo_name}/zipball/{commit_hash}".format(owner=owner, repo_name=repo_name, commit_hash=repo['commit_hash'])
         archive_url = requests.get(gen_download_url, headers=self.headers).url
         r = requests.get(archive_url)

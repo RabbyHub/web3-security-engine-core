@@ -19,7 +19,7 @@ def main():
             },
             {
                 'url': 'https://github.com/RabbyHub/example-common-security-rule',
-                'commit_hash': '999a5b2e175c0e2612b45b0e5abaebfb840eb63e',
+                'commit_hash': '73cad96c6f08294e0fd907f0f225c175e9a1c6b5',
                 'origin': 'common',
             },
         ]
@@ -59,6 +59,67 @@ def main():
         {
             "text": '''Spam text signature''',
             "chain_id": 1,
+            "origin": "https://debank.com/"
+        },
+        {
+            "typed_data": {
+                "types": {
+                    "EIP712Domain": [
+                    {
+                        "name": "name",
+                        "type": "string"
+                    },
+                    {
+                        "name": "version",
+                        "type": "string"
+                    },
+                    {
+                        "name": "chainId",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "verifyingContract",
+                        "type": "address"
+                    }
+                    ],
+                    "Permit": [
+                    {
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "name": "value",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "nonce",
+                        "type": "uint256"
+                    },
+                    {
+                        "name": "deadline",
+                        "type": "uint256"
+                    }
+                    ]
+                },
+                "domain": {
+                    "name": "USD Coin",
+                    "version": "2",
+                    "verifyingContract": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "chainId": 1
+                },
+                "primaryType": "Permit",
+                "message": {
+                    "owner": "0x5853eD4f26A3fceA565b3FBC698bb19cdF6DEB85",
+                    "spender": "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+                    "value": "1000000",
+                    "nonce": 7,
+                    "deadline": 1658834549
+                }
+                },
             "origin": "https://debank.com/"
         }
     ]   
