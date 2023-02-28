@@ -13,14 +13,21 @@ class BaseContext(object):
     origin: str = dataclasses.field(init=False)
     sign_type: SignType = dataclasses.field(init=False)
     chain: Chain = dataclasses.field(init=False)
-    
+    domain: str = dataclasses.field(init=False)
+
     def __post_init__(self):
         self.origin = self.get_origin(self.action.origin)
+        self.domain = self.get_domain(self.origin)
     
     def get_origin(self, origin):
         if not origin:
             return ''
         return origin.rstrip('/')
+
+    def get_domain(self, origin):
+        if not origin:
+            return ''
+        return urlparse(origin).netloc
 
 
 @dataclasses.dataclass()
@@ -52,7 +59,7 @@ class TypedDataContext(BaseContext):
         if not data:
             return
         return TypedData(**dict(
-            chain_id=data['domain']['chainId'],
+            chain_id=int(data['domain']['chainId']),
             version=data['domain']['version'],
             name=data['domain']['name'],
             verifying_contract=data['domain']['verifyingContract'],

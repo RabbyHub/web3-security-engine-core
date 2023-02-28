@@ -12,8 +12,7 @@ class CustomTransactionContext(TransactionContext):
     token_approve: TokenApprove = None
     nft_approve: NFTApprove = None
     nft_collection_approve: NFTCollectionApprove = None
-    domain: str = None
-
+    
     def __post_init__(self):
         super(CustomTransactionContext, self).__post_init__()
     

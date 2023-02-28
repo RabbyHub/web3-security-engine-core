@@ -11,7 +11,7 @@ class NFT(object):
     is_erc1155: bool
     contract: Contract
 
-
+@dataclasses.dataclass()
 class NFTCollection(object):
     id: str
     is_erc1155: bool

@@ -13,7 +13,7 @@ class SignType(Enum):
 class BaseAction(object):
     sign_type: str = dataclasses.field(init=False)
     origin: str
-    
+    domain: str = dataclasses.field(init=False)
     def __post_init__(self):
         pass
 
@@ -26,7 +26,7 @@ class TransactionAction(BaseAction):
     def __post_init__(self):
         super(TransactionAction, self).__post_init__()
         self.sign_type = SignType.transaction
-        self.chain_id = self.transaction['chainId']
+        self.chain_id = int(self.transaction['chainId'])
 
 
 @dataclasses.dataclass()
@@ -49,7 +49,7 @@ class TypedDataAction(BaseAction):
     def __post_init__(self):
         super(TypedDataAction, self).__post_init__()
         self.sign_type = SignType.typed_data
-        self.chain_id = self.typed_data['domain']['chainId']
+        self.chain_id = int(self.typed_data['domain']['chainId'])
 
 
 def get_action(params):
