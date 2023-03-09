@@ -1,5 +1,6 @@
 import dataclasses
 from .chain import Chain
+from .protocol import Protocol
 
 
 @dataclasses.dataclass()
@@ -11,4 +12,5 @@ class Contract(object):
     is_token: bool
     is_suicide: bool
     is_multisig: bool
+    protocol: Protocol
 
