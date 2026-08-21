@@ -4,6 +4,7 @@ from security_engine.managers.rule import RuleManager
 from security_engine.managers.log import LogManager
 from security_engine.managers.context import ContextManager
 from security_engine.handlers import HandlerType
+from security_engine.utils.safe_eval import safe_eval
 
 
 log_manager = LogManager()
@@ -11,9 +12,11 @@ log_manager = LogManager()
 
 class SecurityEngineCore(object):
 
-    def __init__(self, rule_load_handler_list=[]):
-        self.rule_manager = RuleManager(load_handlers=rule_load_handler_list)
-        
+    def __init__(self, rule_load_handler_list=None):
+        self.rule_manager = RuleManager(
+            load_handlers=rule_load_handler_list or []
+        )
+
     def load(self, refresh=True):
         self.rule_manager.load(refresh=refresh)
     
@@ -70,12 +73,18 @@ class SecurityEngineCore(object):
     def execute(self, context, rule):
         context_dict = self.context_manager.to_dict(context)
         if rule.properties:
-            properties = {k: eval(v, context_dict) for k, v in rule.properties.items()}
+            properties = {
+                key: safe_eval(expression, context_dict)
+                for key, expression in rule.properties.items()
+            }
             context_dict.update(properties)
-        if rule.conditions:
-            for condition in rule.conditions:
-                rule.logic = rule.logic.replace(condition['condition'], '(%s)' % condition['logic'])
-        return eval(rule.logic, context_dict)
+
+        logic = rule.logic
+        for condition in rule.conditions:
+            logic = logic.replace(
+                condition['condition'], '({})'.format(condition['logic'])
+            )
+        return safe_eval(logic, context_dict)
 
 
     

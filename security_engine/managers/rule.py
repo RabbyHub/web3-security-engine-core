@@ -4,8 +4,9 @@ from security_engine.models.data_source import DataSource
 
 class RuleManager(object):
 
-    def __init__(self, load_handlers=[]) -> None:
-        self.load_handlers = load_handlers
+    def __init__(self, load_handlers=None) -> None:
+        self.load_handlers = list(load_handlers or [])
+
         self.app_list = []
 
     def load(self, refresh=True):

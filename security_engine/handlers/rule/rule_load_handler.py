@@ -8,13 +8,20 @@ import json
 import requests
 import itertools
 import shutil
+import stat
+from urllib.parse import urlparse
 from security_engine.models.rule import Rule, App, SignType
+
 from security_engine.models.data_source import AddressSet, DomainSet, SignTextPatternSet
 from security_engine.handlers import HandlerType, BaseHandler
 
 
 REPO_TMP_DIR = 'tmp'
 RULE_SET_DIR = 'ruleset'
+REQUEST_TIMEOUT_SECONDS = 15
+MAX_ARCHIVE_BYTES = 20 * 1024 * 1024
+MAX_EXTRACTED_BYTES = 100 * 1024 * 1024
+ALLOWED_ARCHIVE_HOSTS = {'github.com', 'codeload.github.com'}
 
 
 logger = logging.getLogger('rule_load_handler')
@@ -27,10 +34,10 @@ class BaseRuleLoadHandler(BaseHandler):
         return HandlerType.RULE_LOAD
 
     def fetch_raw(self):
-        raise NotImplemented
+        raise NotImplementedError
     
-    def load(self):
-        raise NotImplemented
+    def load(self, refresh=True):
+        raise NotImplementedError
 
         
 class FileRuleLoadHandler(BaseRuleLoadHandler):
@@ -108,7 +115,9 @@ class FileRuleLoadHandler(BaseRuleLoadHandler):
             app_list.append(app)
         return app_list
 
-    def load(self):
+    def load(self, refresh=True):
+        if refresh:
+            self.fetch_raw()
         return self.parse()
 
 
@@ -151,14 +160,67 @@ class GithubRepoRuleLoadHandler(FileRuleLoadHandler):
             local_dst = os.path.join(REPO_TMP_DIR, self.app_list[i]['name'])
             self.download_repo_file(repo, local_dst)
 
+    @staticmethod
+    def _extract_archive(zip_ref, destination):
+        destination = os.path.abspath(destination)
+        extracted_bytes = 0
+        for member in zip_ref.infolist():
+            extracted_bytes += member.file_size
+            if extracted_bytes > MAX_EXTRACTED_BYTES:
+                raise ValueError('Rule archive exceeds the extraction size limit')
+            member_path = os.path.abspath(os.path.join(destination, member.filename))
+            if os.path.commonpath([destination, member_path]) != destination:
+                raise ValueError('Rule archive contains a path traversal entry')
+
+            mode = member.external_attr >> 16
+            if stat.S_ISLNK(mode):
+                raise ValueError('Rule archive contains a symbolic link')
+
+            if member.is_dir():
+                os.makedirs(member_path, exist_ok=True)
+                continue
+
+            os.makedirs(os.path.dirname(member_path), exist_ok=True)
+            with zip_ref.open(member) as source, open(member_path, 'wb') as target:
+                shutil.copyfileobj(source, target)
+
     def download_repo_file(self, repo, local_dst):
         if os.path.exists(local_dst):
             shutil.rmtree(local_dst)
         *_, owner, repo_name = repo['url'].split('/')
         gen_download_url = "https://api.github.com/repos/{owner}/{repo_name}/zipball/{commit_hash}".format(owner=owner, repo_name=repo_name, commit_hash=repo['commit_hash'])
-        archive_url = requests.get(gen_download_url, headers=self.headers).url
-        r = requests.get(archive_url)
+        response = requests.get(
+            gen_download_url,
+            headers=self.headers,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        archive_url = response.url
+        parsed_url = urlparse(archive_url)
+        if (
+            parsed_url.scheme != 'https'
+            or parsed_url.hostname not in ALLOWED_ARCHIVE_HOSTS
+        ):
+            raise ValueError('GitHub returned an unexpected archive URL')
 
-        zip_ref = zipfile.ZipFile(io.BytesIO(r.content))
-        zip_ref.extractall(REPO_TMP_DIR)
-        os.rename(os.path.join(REPO_TMP_DIR, zip_ref.namelist()[0]), local_dst)
+        archive_response = requests.get(
+            archive_url,
+            stream=True,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        archive_response.raise_for_status()
+        content_length = archive_response.headers.get('Content-Length')
+        if content_length and int(content_length) > MAX_ARCHIVE_BYTES:
+            raise ValueError('Rule archive exceeds the download size limit')
+
+        archive_bytes = bytearray()
+        for chunk in archive_response.iter_content(chunk_size=64 * 1024):
+            archive_bytes.extend(chunk)
+            if len(archive_bytes) > MAX_ARCHIVE_BYTES:
+                raise ValueError('Rule archive exceeds the download size limit')
+
+        with zipfile.ZipFile(io.BytesIO(archive_bytes)) as zip_ref:
+            self._extract_archive(zip_ref, REPO_TMP_DIR)
+            root_name = zip_ref.namelist()[0].split('/')[0]
+
+        os.rename(os.path.join(REPO_TMP_DIR, root_name), local_dst)
