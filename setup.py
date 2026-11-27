@@ -13,6 +13,6 @@ setup(
     install_requires=[
         'PyYAML==6.0',
         'smmap==5.0.0',
-        'requests==2.27.1'
+        'requests==2.33.0'
     ]
 )
